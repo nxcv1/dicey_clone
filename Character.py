@@ -1,5 +1,6 @@
 import random
 import Weapon
+import sqlite3
 
 
 class Player:
@@ -85,6 +86,8 @@ class Enemy:
         self.current_hp = hp
         self.max_hp = hp
         self.num_dice = num_dice
+        self.inventory_size = 4
+        self.status = 0
 
     def __str__(self):
         outputstring = "Player name: {0}\nLevel: {1}\nHP: {2}/{3}\nNumber of Dice: {4}"
