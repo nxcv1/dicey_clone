@@ -30,9 +30,10 @@ def create_enemy(db_cur):
     hp = random.randint(14, 17) + Character.hp_per_level(level)
     num_dice = 2
     return_enemy = Character.Enemy(name, level, hp, num_dice)
+    status = 0
 
-    sql_create_enemy = "INSERT INTO enemy (enemy_name, enemy_lvl, enemy_max_hp, enemy_invsize) VALUES (?, ?, ?, ?)"
-    create_enemy_tuple = (name, level, hp, num_dice)
+    sql_create_enemy = "INSERT INTO enemy (enemy_name, enemy_lvl, enemy_max_hp, enemy_invsize, status_id) VALUES (?, ?, ?, ?, ?)"
+    create_enemy_tuple = (name, level, hp, num_dice, status)
     db_cur.execute(sql_create_enemy, create_enemy_tuple)
     print("Enemy added to database.")
     print(return_enemy)
@@ -45,13 +46,23 @@ def create_player(db_cur):
     num_dice = 2
     return_player = Character.Player(name, level, hp, num_dice)
 
-    sql_create_player = "INSERT INTO player (player_name, player_lvl, player_current_hp, player_max_hp, player_xp_current, player_xp_to_level, player_gold, player_numdice, player_invsize, player_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    sql_create_player = "INSERT INTO player (player_name, player_lvl, player_current_hp, player_max_hp, player_xp_current, player_xp_to_level, player_gold, player_numdice, player_invsize, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     create_player_tuple = (return_player.name, return_player.level, return_player.current_hp, return_player.max_hp,
                            return_player.xp_current, return_player.xp_to_level, return_player.gold,
                            return_player.num_dice, return_player.inventory_size, return_player.status)
     db_cur.execute(sql_create_player, create_player_tuple)
     print("Player added to database.")
     print(return_player)
+    print()
+
+
+def create_status(db_cur):
+    name = input("Status name: ")
+
+    sql_create_status = "INSERT INTO status (status_name) VALUES (?);"
+    create_status_tuple = (name,)
+    db_cur.execute(sql_create_status, create_status_tuple)
+    print("Status added to database.")
     print()
 
 
@@ -77,7 +88,7 @@ def create_weapon(db_cur):
 
     weapon_return = Weapon.Weapon(name, min_roll, max_roll, modifier, status_fx)
 
-    sql_create_weapon = "INSERT INTO weapon (weapon_name, weapon_min_roll, weapon_max_roll, weapon_modifier, weapon_status_fx) VALUES (?, ?, ?, ?, ?)"
+    sql_create_weapon = "INSERT INTO weapon (weapon_name, weapon_min_roll, weapon_max_roll, weapon_modifier, status_id) VALUES (?, ?, ?, ?, ?)"
     create_weapon_tuple = (name, min_roll, max_roll, modifier, status_fx)
     db_cur.execute(sql_create_weapon, create_weapon_tuple)
     print("Weapon added to database.")
@@ -105,7 +116,7 @@ def initialize_db(db_cur):
                       "player_gold             integer         CONSTRAINT player_gold_chk CHECK (player_gold >= 0) NOT NULL," \
                       "player_numdice          integer         CONSTRAINT player_numdice_chk CHECK (player_numdice > 0) NOT NULL," \
                       "player_invsize          integer         CONSTRAINT player_invsize_chk CHECK (player_invsize > 0) NOT NULL," \
-                      "player_status           integer         CONSTRAINT player_status_chk CHECK (player_status >= 0 AND player_status <= 3) NOT NULL" \
+                      "status_id               integer         CONSTRAINT player_status_fk REFERENCES status(status_id) NOT NULL" \
                       ");"
     sql_enemytable = "CREATE TABLE IF NOT EXISTS enemy (" \
                      "enemy_id                integer         CONSTRAINT enemy_id_pk PRIMARY KEY AUTOINCREMENT," \
@@ -114,7 +125,7 @@ def initialize_db(db_cur):
                      "enemy_max_hp            integer         CONSTRAINT enemy_maxhp_chk CHECK (enemy_max_hp >= 0)," \
                      "enemy_invsize           integer         CONSTRAINT enemy_invsize_chk CHECK (enemy_invsize > 0)," \
                      "enemy_numdice           integer         CONSTRAINT enemy_numdice_chk CHECK (enemy_numdice > 0)," \
-                     "enemy_status            integer         CONSTRAINT enemy_status_chk CHECK (enemy_status >=0 AND enemy_status <= 3)" \
+                     "status_id               integer         CONSTRAINT enemy_status_fk REFERENCES status(status_id) NOT NULL" \
                      ");"
     sql_weapontable = "CREATE TABLE IF NOT EXISTS weapon (" \
                       "weapon_id               integer         CONSTRAINT weapon_id_pk PRIMARY KEY AUTOINCREMENT," \
@@ -122,7 +133,7 @@ def initialize_db(db_cur):
                       "weapon_min_roll         integer         CONSTRAINT weapon_minroll_chk CHECK (weapon_min_roll >= 1 AND weapon_min_roll <= weapon_max_roll)," \
                       "weapon_max_roll         integer         CONSTRAINT weapon_maxroll_chk CHECK (weapon_max_roll >= weapon_min_roll AND weapon_max_roll <= 6)," \
                       "weapon_modifier         integer         CONSTRAINT weapon_mod_chk CHECK (weapon_modifier >= 0)," \
-                      "weapon_status_fx        integer         CONSTRAINT weapon_status_fx_chk CHECK (weapon_status_fx >= 0 AND weapon_status_fx <= 3)" \
+                      "status_id               integer         CONSTRAINT weapon_status_fx_fk REFERENCES status(status_id) NOT NULL" \
                       ");"
     sql_inventorytable = "CREATE TABLE IF NOT EXISTS inventory (" \
                          "inv_playerid         integer         CONSTRAINT inv_pid_fk REFERENCES player(player_id)," \
@@ -130,6 +141,13 @@ def initialize_db(db_cur):
                          "CONSTRAINT inv_pk PRIMARY KEY (inv_playerid, inv_weaponid)" \
                          ");"
 
+    sql_statustable = "CREATE TABLE IF NOT EXISTS status (" \
+                      "status_id                 integer         CONSTRAINT status_id_pk PRIMARY KEY AUTOINCREMENT," \
+                      "status_name               varchar(20)     CONSTRAINT status_name_nn NOT NULL" \
+                      ");"
+
+    db_cur.execute(sql_statustable)
+    print("status table complete")
     db_cur.execute(sql_playertable)
     print("player table complete")
     db_cur.execute(sql_enemytable)
@@ -161,6 +179,11 @@ def print_db(db_cur):
     for row_i in print_i:
         print(row_i)
 
+    print("Statuses")
+    print_s = db_cur.execute("SELECT * FROM status")
+    for row_s in print_s:
+        print(row_s)
+
     print()
 
 
@@ -171,12 +194,13 @@ def main_menu(db_conn, db_cur):
         print("[1] Create a player")
         print("[2] Create an enemy")
         print("[3] Create a weapon")
-        print("[4] Assign a weapon")
-        print("[5] Attack!")
-        print("[6] Quit")
-        print("[9] Initialize DB")
-        print("[0] Drop DB")
-        print("[11] Print DB")
+        print("[4] Create a status condition")
+        print("[5] Assign a weapon")
+        print("[9] Attack!")
+        print("[11] Initialize DB")
+        print("[22] Drop DB")
+        print("[33] Print DB")
+        print("[99] Quit")
         selection = int(input("Selection: "))
         print()
 
@@ -187,17 +211,19 @@ def main_menu(db_conn, db_cur):
         elif selection == 3:
             create_weapon(db_cur)
         elif selection == 4:
-            pass
+            create_status(db_cur)
         elif selection == 5:
-            battle_menu(players, weapons, enemies)
-        elif selection == 6:
-            exit(0)
+            pass
         elif selection == 9:
-            initialize_db(db_cur)
-        elif selection == 0:
-            drop_db(db_cur)
+            pass
         elif selection == 11:
+            initialize_db(db_cur)
+        elif selection == 22:
+            drop_db(db_cur)
+        elif selection == 33:
             print_db(db_cur)
+        elif selection == 99:
+            exit(0)
 
         db_conn.commit()
 
