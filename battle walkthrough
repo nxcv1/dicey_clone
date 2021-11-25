@@ -1,0 +1,34 @@
+ASSUMPTIONS
+- one sided fight right now, decision making structure for computer is gonna be a pain
+- all enemies available are the same level
+
+battle starts
+print chosen player character and a random enemy
+
+# 1 ### ROLL DICE USING A LIST ###
+    dice_roll = []
+    for x in range (player.num_dice - 1)
+        dice_roll.append(random.randint(1,6))
+
+# 2 ### OUTPUT DICE ROLL RESULTS ###
+    for count, die in enumerate (dice_roll, start=1):
+        output_string = "[{0}]: {1}"
+        print(output_string.format(count, die))
+
+# 3 ### OUTPUT AVAILABLE WEAPONS ###
+    player.print_weapons()
+    ### BUT HOW TO ENUMERATE??? THIS WILL PRINT THEM BUT NOT PROVIDE AN INDEX!!! ###
+    ### in Character.py, can we: ###
+        def print_weapons(self):
+        for count, weapon in enumerate(self.weapons, start=1):
+            output_string = "Weapon [{0}]:\n{1}"
+            print(output_string.format(count, weapon)
+
+# 4 ### GET USER DIE CHOICE
+    Make sure to remove that die from the roll list
+
+# 5 ### GET USER WEAPON CHOICE
+    How to mark that weapon as used for this turn?
+
+# 6 ### PROCESS ATTACK DAMAGE
+    Implement Character.attack() method
